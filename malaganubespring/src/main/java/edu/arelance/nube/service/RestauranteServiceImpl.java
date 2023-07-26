@@ -1,0 +1,136 @@
+package edu.arelance.nube.service;
+
+import java.util.Optional;
+
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+
+import edu.arelance.nube.dto.FraseChuckNorris;
+import edu.arelance.nube.repository.RestauranteRepository;
+import edu.arelance.nube.repository.entity.Restaurante;
+
+@Service
+public class RestauranteServiceImpl implements RestauranteService{
+
+	
+	@Autowired
+	RestauranteRepository restauranteRepository;
+	
+	@Override
+	@Transactional(readOnly = true)//permitimos acceso concurrente a la tabla Restaurantes
+	public Iterable<Restaurante> consultarTodos() {
+		return this.restauranteRepository.findAll();
+		//return null;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<Restaurante> consultarRestaurante(Long id) {
+		 return this.restauranteRepository.findById(id);
+		//return Optional.empty();
+	}
+
+	@Override
+	@Transactional
+	public Restaurante altaRestaurante(Restaurante restaurante) {
+		return this.restauranteRepository.save(restaurante);
+		//return null;
+	}
+
+	@Override
+	@Transactional
+	public void borrarRestaurante(Long id) {
+		this.restauranteRepository.deleteById(id);
+	}
+
+	@Override
+	@Transactional
+	public Optional<Restaurante> modificarRestaurante(Long id, Restaurante restaurante) {
+		Optional<Restaurante> opRest = Optional.empty();
+			
+			//1 LEER
+				opRest = this.restauranteRepository.findById(id);
+				if (opRest.isPresent())
+				{
+					//Al estar dentro de una transacción, restauranteLeido está asociado
+					//a un registro de la tabla. Si modifico un campo, estoy modificando 
+					//la columna asociada (Estado "Persistent" - JPA)
+					Restaurante restauranteLeido =  opRest.get();
+					//restauranteLeido.setNombre(restaurante.getNombre());
+					BeanUtils.copyProperties(restaurante, restauranteLeido, "id", "creadoEn");
+					opRest = Optional.of(restauranteLeido);//"relleno el Optional"
+				}
+			//2 ACTUALIZAR
+		
+		return opRest;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Iterable<Restaurante> buscarPorRangoPrecio(int preciomin, int preciomax) {
+		Iterable<Restaurante> listaR = null;
+			
+			listaR = this.restauranteRepository.findByPrecioBetween(preciomin, preciomax);
+			
+		return listaR;
+	}
+	
+	@Override
+	@Transactional(readOnly = true)
+	public Iterable<Restaurante> buscarPorRangoPrecio(int preciomin, int preciomax, Pageable pageable) {
+			Iterable<Restaurante> listaR = null;
+				
+				listaR = this.restauranteRepository.findByPrecioBetween(preciomin, preciomax, pageable);
+				
+			return listaR;
+		}
+	  
+	  // repository
+
+	@Override
+	@Transactional(readOnly = true)
+	public Iterable<Restaurante> buscarPorBarrioNombreOEspecialidad(String clave) {
+		Iterable<Restaurante> listaRest = null;
+		
+			listaRest = this.restauranteRepository.buscarPorBarrioNombreOEspecialidad(clave);
+		
+		return listaRest;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Iterable<String> obtenerTodosLosBarrios() {
+		return this.restauranteRepository.consultarTodosLosBarrios();
+		
+	}
+
+	@Override
+	public Optional<FraseChuckNorris> obtenerFraseAleatorioChuckNorris() {
+		Optional<FraseChuckNorris> opChuck = Optional.empty();
+		FraseChuckNorris fraseChuckNorris = null;
+		RestTemplate restTemplate = null;
+		
+			restTemplate = new RestTemplate();
+		    fraseChuckNorris = restTemplate.getForObject("https://api.chucknorris.io/jokes/random", FraseChuckNorris.class);
+		    opChuck = Optional.of(fraseChuckNorris);
+		
+		return opChuck;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Page<Restaurante> consultarPorPagina(Pageable pageable) {
+		// TODO Auto-generated method stub
+		
+		return this.restauranteRepository.findAll(pageable);
+	}
+
+}
+
+
+
